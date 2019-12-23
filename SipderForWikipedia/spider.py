@@ -53,10 +53,10 @@ class Spider:
             return pq(r.text, parser='html')
         except:
             # 如果发生异常，及时保存当前已经保存的信息
-            print('ERROR')
+            print('An error happened.')
             json_str = json.dumps(self.weapons_info_lists)
             self.save_comtent('weapon_info_lists_error.json', json_str)
-            exit(0)
+            return False
         
 
     # 将指定对象保存到filepath文件中（需指定文件类型）
@@ -84,10 +84,14 @@ class Spider:
     # 从一个武器条目中获取武器的信息（武器信息是存放在表格中的）
     def get_weapon_info(self, u: str):
         html = self.get_web_content_as_pyquery(u)
-        info_table = html('#mw-content-text').children('div').children('table.infobox.vcard tbody')
+        if html == False:
+            return False
+        # info_table = html('#mw-content-text').children('div').children('table.infobox.vcard tbody')
+        info_table = html('#mw-content-text').children('div').children('table.infobox').children('tbody')
 
         # 从表格中对数据进行读取并格式化
         weapon_name = info_table('tr:first').text()
+        # weapon_name = html('#mw-content-text').children('div').children('table.infobox').children('caption').text()
         if weapon_name == '':
             return None
 
@@ -118,13 +122,15 @@ class Spider:
 
         for weapon in weapon_lists:
             weapon_info = self.get_weapon_info(weapon)
+            if weapon_info == False:
+                continue
             if weapon_info is not None:
                 self.weapons_info_lists.append(weapon_info)
             print(str(weapon_lists.index(weapon)) + ' has been processed')
 
         json_str = json.dumps(self.weapons_info_lists)
 
-        self.save_comtent('weapons/' + type_name + '.json', json_str)
+        self.save_comtent(type_name + '.json', json_str)
         print(type_name + ' completed.')
 
     # 从按照表格存放武器条目的页面中爬取数据
@@ -139,17 +145,21 @@ class Spider:
         weapon_list = []
         for a in d.items():
             weapon_list.append(self.root_url + a.attr('href'))
+        
+        self.save_comtent('link.json', json.dumps(weapon_list))
         print('Type of weapon: ' + type_name + ' have ' + str(len(weapon_list)) + ' entries')
 
         for weapon in weapon_list:
             weapon_info = self.get_weapon_info(weapon)
+            if weapon_info == False:
+                continue
             if weapon_info is not None:
                 self.weapons_info_lists.append(weapon_info)
             print(str(weapon_list.index(weapon)) + ' has been processed')
 
         json_str = json.dumps(self.weapons_info_lists)
 
-        self.save_comtent('weapons/' + type_name + '.json', json_str)
+        self.save_comtent(type_name + '.json', json_str)
         print(type_name + ' completed.')
 
 
@@ -163,5 +173,5 @@ if __name__ == '__main__':
     #     spider.save_comtent('last_save_content.json', json.dumps(spider.weapons_info_lists))
    
     spider = Spider()
-    # spider.get_weapon_lists_from('https://en.wikipedia.org/wiki/List_of_missiles')
-    spider.get_weapon_lists_from_2('https://en.wikipedia.org/wiki/List_of_machine_guns')
+    # spider.get_weapon_lists_from('https://en.wikipedia.org/wiki/List_of_militaries_by_country')
+    spider.get_weapon_lists_from_2('https://en.wikipedia.org/wiki/List_of_modern_armament_manufacturers')
